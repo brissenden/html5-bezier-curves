@@ -14,17 +14,16 @@ class Main
     $('#example1').bind 'click', =>
       initialPoints = [[180, 319], [230, 40], [29, 266], [143, 449], [306, 33], [313, 155], [138, 18], [120, 316]]
       c1 = new Curve("c1", initialPoints)
-      c2 = new Curve("c2", initialPoints)
+      #c2 = new Curve("c2", initialPoints)
 
-      @configure(c1, c2)
+      @configure(c1)
 
-  configure: (c1, c2) =>
+  configure: (c1) =>
     $('#curves').children('.kineticjs-content').remove()
 
     @draw = new Draw("curves")
 
     @draw.layer.addCurve c1
-    @draw.layer.addCurve c2
 
     @draw.layer.layer.beforeDraw =>
       @draw.layer.draw(@draw.curveLayer.layer.getCanvas())
