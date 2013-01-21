@@ -18,25 +18,35 @@ class Main
     @reduceCounter = 0
 
   htmlElements: =>
+    $('.degree').hide()
+
     $('#reduce').bind 'click', => @runReduce()
 
     $('#example1').bind 'click', =>
-      @configure(new Curve("c1", [[180, 319], [230, 40], [29, 266], [143, 449]]))
+      @configure(new Curve("c1", [[180, 319], [230, 40], [29, 266], [143, 449]])) # n = 3
 
     $('#example2').bind 'click', =>
-      @configure(new Curve("c1", [[441, 298], [636, 66], [191, 64], [213, 401], [441, 298]]))
+      @configure(new Curve("c1", [[441, 298], [636, 66], [191, 64], [213, 401], [441, 298]])) # n = 4
 
     $('#example3').bind 'click', =>
-      @configure(new Curve("c1", [[731, 149], [547, 403], [354, 427], [143, 449], [133, 70], [361, 30], [708, 337]]))
+      @configure(new Curve("c1", [[731, 149], [547, 403], [354, 427], [143, 449], [133, 70], [361, 30], [708, 337]])) # n = 6
 
     $('#example4').bind 'click', =>
-      @configure(new Curve("c1", [[427, 300], [215, 215], [47, 215], [121, 505], [262, 294], [555, 144], [182, 22], [292, 28], [164, 181]]))
+      @configure(new Curve("c1", [[427, 300], [215, 215], [47, 215], [121, 505], [262, 294], [555, 144], [182, 22], [292, 28], [164, 181]])) # n = 7
 
   runReduce: =>
+    @showDegree()
+
     @reduceCounter++
 
     @draw.layer.drawAnimate(@draw.curveLayer.layer.getCanvas(), @reduceCounter, '#ff0000')
     @errorDiagram(@reduceCounter)
+
+  showDegree: =>
+    $('.degree').show()
+    inDegree = @draw.layer.curves[0].points.length-1
+    degree = inDegree - @reduceCounter
+    $('#degree').html(degree)
 
   errorDiagram: (degreeReduce) =>
     chart = new Highcharts.Chart(
@@ -101,6 +111,8 @@ class Main
       @draw.layer.layer.draw()
 
     @draw.run()
+
+    @showDegree()
 
 class Draw
   constructor: (id, width = 800, height = 600) ->
@@ -235,6 +247,8 @@ class Bezier
   reduceDegree: (initialPoints) =>
     degree = initialPoints.length-1
 
+    $('#degree').html(degree-1)
+
     xs = initialPoints.map((p) => p[0])
     ys = initialPoints.map((p) => p[1])
 
@@ -286,7 +300,7 @@ class Curve
   constructor: (@id, @points) ->
     @line = new Kinetic.Line(
       dashArray: [10, 10, 0, 10]
-      strokeWidth: 1
+      strokeWidth: 3
       stroke: "grey"
       lineCap: "round"
       id: @id
