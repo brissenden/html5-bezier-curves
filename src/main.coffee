@@ -77,6 +77,7 @@ class Main
 
       series: @dataSeries(degreeReduce)
     )
+    chart.setSize(800, 260)
 
   dataSeries: (degreeReduce) =>
     series = []
