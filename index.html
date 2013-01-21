@@ -1,6 +1,7 @@
 <!DOCTYPE HTML>
 <html>
   <head>
+    <meta charset='UTF-8' />
     <style>
       html {
         margin: 0 auto;
@@ -24,12 +25,17 @@
     <script src="lib/kinetic-v4.1.2.min.js"></script>
     <script src="lib/html5-curves.js"></script>
     <script src="lib/underscore-min.js"></script>
+    <script src="lib/highcharts.js"></script>
     <script src="lib/main.js"></script>
   </head>
   <body onmousedown="return false;">
+    <div>
+      <button id="animate"> Animacja
+      <button id="example1"> Przykład 1
+      <button id="example2"> Przykład 2
+      <button id="example3"> Przykład 3
+    </div>
+    <div id="error-diagram"></div>
     <div id="curves"></div>
-    <button id="example1"> Example 1
-    <button id="example2"> Example 2
-    <button id="example3"> Example 3
   </body>
 </html>
