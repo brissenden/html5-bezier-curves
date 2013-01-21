@@ -7,35 +7,38 @@ Math.round = (->
 )()
 
 $ ->
-  new Main()
+  main = new Main()
+  main.htmlElements()
 
 class Main
   constructor: ->
-    @downReduceLimit = 3
+    @reduceCounter = 0
 
-    $('#animate').bind 'click', => @runAnimate()
+  resetCounter: =>
+    @reduceCounter = 0
+
+  htmlElements: =>
+    $('#reduce').bind 'click', => @runReduce()
 
     $('#example1').bind 'click', =>
-      initialPoints = [[180, 319], [230, 40], [29, 266], [143, 449], [306, 33], [313, 155], [138, 18]]
-      c1 = new Curve("c1", initialPoints)
+      @configure(new Curve("c1", [[180, 319], [230, 40], [29, 266], [143, 449]]))
 
-      @configure(c1)
+    $('#example2').bind 'click', =>
+      @configure(new Curve("c1", [[731, 149], [230, 40], [29, 266], [143, 449], [33, 33]]))
 
-  runAnimate: =>
-    step = 0
-    frame = =>
-      if step <= @downReduceLimit
-        step++
-        @draw.layer.drawAnimate(@draw.curveLayer.layer.getCanvas(), step, '#ff0000')
-      else
-        clearInterval nre
-        @errorDiagram()
+    $('#example3').bind 'click', =>
+      @configure(new Curve("c1", [[731, 149], [230, 40], [29, 266], [143, 449], [33, 33], [66, 66], [99, 99]]))
 
-    nre = setInterval frame, 1000
+    $('#example4').bind 'click', =>
+      @configure(new Curve("c1", [[731, 149], [230, 40], [29, 266], [143, 449], [33, 33], [66, 66], [99, 99], [111, 111], [133, 133]]))
 
-  errorDiagram: =>
-    console.log @draw.layer.errorData(1)
+  runReduce: =>
+    @reduceCounter++
 
+    @draw.layer.drawAnimate(@draw.curveLayer.layer.getCanvas(), @reduceCounter, '#ff0000')
+    @errorDiagram(@reduceCounter)
+
+  errorDiagram: (degreeReduce) =>
     chart = new Highcharts.Chart(
       chart:
         renderTo: "error-diagram"
@@ -44,13 +47,22 @@ class Main
       title:
         text: "Wykres błędu"
 
+      tooltip:
+        formatter: ->
+          return Highcharts.numberFormat(this.y, 1) + 'px w punkcie t=' + parseInt(this.x)/100
+
       yAxis:
         title:
-          text: "Wartość błędu"
+          text: "Wartość błędu w px"
 
         labels:
           formatter: ->
-            @value
+            @value + 'px'
+
+      xAxis:
+        labels:
+          formatter: ->
+            @value/100
 
       plotOptions:
         area:
@@ -63,17 +75,17 @@ class Main
               hover:
                 enabled: true
 
-      series: @dataSeries()
+      series: @dataSeries(degreeReduce)
     )
 
-  dataSeries: =>
+  dataSeries: (degreeReduce) =>
     series = []
-    for i in [1..@downReduceLimit]
-      series.push { name: "Stopien o #{i} niższy", data:  @draw.layer.errorData(i) }
-
+    series.push { name: "Wykres błędu", data:  @draw.layer.errorData(degreeReduce) }
     series
 
   configure: (c1) =>
+    @resetCounter()
+
     $('#curves').children('.kineticjs-content').remove()
 
     @draw = new Draw("curves")
@@ -107,11 +119,11 @@ class Draw
 class Layer
   constructor: ->
     @layer  = new Kinetic.Layer()
+    @canvas = @layer.getCanvas()
     @curves = []
     @colors = ['#24609d', '#ff0000']
 
-    @N = 100
-
+    @bezier = new Bezier(100)
     @curvesControlPoints = []
 
   addCurve: (curve) =>
@@ -148,21 +160,39 @@ class Layer
 
     _.each @curves, (c, i) =>
       points = @curvePoints(c)
-      context.bezier(@N, points, @colors[i])
+      @curvesControlPoints[0] = points
+      context.bezier(points, @colors[i])
+
+  markPoint: (canvas, p) =>
+    context = canvas.getContext("2d")
+    context.fillRect(p[0], p[1], 4, 4)
 
   drawAnimate: (canvas, reduce, color) =>
-    @draw(canvas)
+    @curvesControlPoints = []
+
+    @draw(canvas) # draw old curve
 
     context = canvas.getContext("2d")
-
     points = @curvePoints(@curves[0])
-    drawedPoints = @parseToFlatten(@reduce(@parseToArray(points), reduce))
+    drawedPoints = @parseToFlatten(@bezier.reduce(@parseToArray(points), reduce))
     @curvesControlPoints.push drawedPoints
 
-    context.bezier(@N, drawedPoints, color)
+    context.bezier(drawedPoints, color)
+
+  errorData: (reducedDegree) =>
+    errors    = []
+    original  = @curvesControlPoints[0]
+    points    = _.last @curvesControlPoints
+
+    _.each @bezier.testPoints(), (t) =>
+      errors.push @bezier.error(@parseToArray(original), @parseToArray(points), t)
+    errors
+
+class Bezier
+  constructor: (@N) ->
 
   distance: (a, b) ->
-    Math.sqrt Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2)
+    Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2))
 
   fact: (k) =>
     if k is 0 or k is 1
@@ -194,16 +224,6 @@ class Layer
     DN.push 1
     DN
 
-  errorData: (reduceDegree) =>
-    errors = []
-    original = @curvesControlPoints[0]
-
-    points = @curvesControlPoints[reduceDegree]
-    _.each @testPoints(), (t) =>
-      errors.push @error(@parseToArray(original), @parseToArray(points), t)
-
-    errors
-
   reduce: (initialPoints, reduce) =>
     points = initialPoints
     while reduce > 0
@@ -226,9 +246,6 @@ class Layer
       P[i][0] = rXs[i]
       P[i][1] = rYs[i]
 
-    # console.debug rXs, rYs
-    # console.debug P
-
     P
 
   reducedControlPoints: (initialPoints) =>
@@ -237,7 +254,7 @@ class Layer
     p = initialPoints.length - 1
     r = (p - 1) / 2
 
-    unless p > 2
+    unless p > 1
       throw "To small curve degree"
       return 0
 
@@ -262,7 +279,6 @@ class Layer
       PR = ( p * Q[r+1] - (p - r - 1.0) * P[r+1]) / (r + 1.0)
 
       P[r] = 0.5 * ( PL + PR )
-
     P
 
 class Curve
